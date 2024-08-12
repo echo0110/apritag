@@ -32,6 +32,7 @@ either expressed or implied, of the Regents of The University of Michigan.
 
 extern "C" {
 #include "apriltag.h"
+#include "tag36h10.h"
 #include "tag36h11.h"
 #include "tag25h9.h"
 #include "tag16h5.h"
@@ -42,7 +43,7 @@ extern "C" {
 #include "tagStandard52h13.h"
 #include "common/getopt.h"
 }
-
+#include "apriltag_pose.h"
 using namespace std;
 using namespace cv;
 
@@ -80,11 +81,12 @@ int main(int argc, char *argv[])
         cerr << "Couldn't open video capture device" << endl;
         return -1;
     }
-
     // Initialize tag detector with options
     apriltag_family_t *tf = NULL;
     const char *famname = getopt_get_string(getopt, "family");
-    if (!strcmp(famname, "tag36h11")) {
+    if (!strcmp(famname, "tag36h10")) {
+        tf = tag36h10_create();
+    } else if (!strcmp(famname, "tag36h11")) {
         tf = tag36h11_create();
     } else if (!strcmp(famname, "tag25h9")) {
         tf = tag25h9_create();
@@ -187,8 +189,9 @@ int main(int argc, char *argv[])
     }
 
     apriltag_detector_destroy(td);
-
-    if (!strcmp(famname, "tag36h11")) {
+    if (!strcmp(famname, "tag36h10")) {
+        tag36h10_destroy(tf);
+    } else if (!strcmp(famname, "tag36h11")) {
         tag36h11_destroy(tf);
     } else if (!strcmp(famname, "tag25h9")) {
         tag25h9_destroy(tf);
