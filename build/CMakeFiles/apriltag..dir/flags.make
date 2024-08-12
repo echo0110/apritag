@@ -6,5 +6,5 @@ C_FLAGS = -O3 -DNDEBUG -fPIC   -Wall -Wextra -Werror -Wno-shift-negative-value
 
 C_DEFINES = -Dapriltag__EXPORTS
 
-C_INCLUDES = -I/home/gensong/tag/apriltag-master/build -I/home/gensong/tag/apriltag-master -I/apriltag -isystem /usr/include/python3.8 -isystem /usr/lib/python3/dist-packages/numpy/core/include 
+C_INCLUDES = -I/home/gensong/tag/apriltag-master/build -I/usr/include/opencv4 -I/home/gensong/tag/apriltag-master -I/apriltag -isystem /usr/include/python3.8 -isystem /usr/lib/python3/dist-packages/numpy/core/include 
 

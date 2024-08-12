@@ -16,6 +16,7 @@ set(CMAKE_TARGET_DEFINITIONS_C
 # The include file search paths:
 set(CMAKE_C_TARGET_INCLUDE_PATH
   "."
+  "/usr/include/opencv4"
   "../"
   "/apriltag"
   "/usr/include/python3.8"

@@ -190,12 +190,12 @@ if (BUILD_EXAMPLES)
     add_executable(apriltag_demo example/apriltag_demo.c)
     target_link_libraries(apriltag_demo ${PROJECT_NAME})
     
-    # OpenCV 头文件路径
-    include_directories("/usr/include/opencv4")
     # opencv_demo
     set(_OpenCV_REQUIRED_COMPONENTS core imgproc videoio highgui)
     find_package(OpenCV COMPONENTS ${_OpenCV_REQUIRED_COMPONENTS} QUIET CONFIG)
+    include_directories("/usr/include/opencv4")
     if(OpenCV_FOUND)
+	include_directories("/usr/include/opencv4")  # Ensure OpenCV include directories are set
         enable_language(CXX)
         # NB: contrib required for TickMeter in OpenCV 2.4. This is only required for 16.04 backwards compatibility and can be removed in the future.
         #     If we add it to the find_package initially, the demo won't build for newer OpenCV versions
@@ -206,6 +206,7 @@ if (BUILD_EXAMPLES)
 
         add_executable(opencv_demo example/opencv_demo.cc)
         target_link_libraries(opencv_demo apriltag ${OpenCV_LIBRARIES})
+	include_directories("/usr/include/opencv4")
         set_target_properties(opencv_demo PROPERTIES CXX_STANDARD 11)
         install(TARGETS opencv_demo RUNTIME DESTINATION bin)
     else()

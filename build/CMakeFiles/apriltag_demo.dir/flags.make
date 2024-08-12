@@ -6,5 +6,5 @@ C_FLAGS = -O3 -DNDEBUG   -Wall -Wextra -Werror -Wno-shift-negative-value
 
 C_DEFINES = 
 
-C_INCLUDES = -I/home/gensong/tag/apriltag-master -I/apriltag 
+C_INCLUDES = -I/usr/include/opencv4 -I/home/gensong/tag/apriltag-master -I/apriltag 
 

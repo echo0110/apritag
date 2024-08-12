@@ -49,6 +49,7 @@ using namespace cv;
 
 int main(int argc, char *argv[])
 {
+    printf("**********************************99999999999999999999999999");
     getopt_t *getopt = getopt_create();
 
     getopt_add_bool(getopt, 'h', "help", 0, "Show this help");
