@@ -76,11 +76,14 @@ int main(int argc, char *argv[])
     meter.start();
 
     // Initialize camera
+   
+#if 0
     VideoCapture cap(getopt_get_int(getopt, "camera"));
     if (!cap.isOpened()) {
         cerr << "Couldn't open video capture device" << endl;
         return -1;
     }
+#endif
     // Initialize tag detector with options
     apriltag_family_t *tf = NULL;
     const char *famname = getopt_get_string(getopt, "family");
@@ -126,9 +129,9 @@ int main(int argc, char *argv[])
     cout << "Detector " << famname << " initialized in "
         << std::fixed << std::setprecision(3) << meter.getTimeSec() << " seconds" << endl;
 #if CV_MAJOR_VERSION > 3
-    cout << "  " << cap.get(CAP_PROP_FRAME_WIDTH ) << "x" <<
-                    cap.get(CAP_PROP_FRAME_HEIGHT ) << " @" <<
-                    cap.get(CAP_PROP_FPS) << "FPS" << endl;
+    // cout << "  " << cap.get(CAP_PROP_FRAME_WIDTH ) << "x" <<
+    //                 cap.get(CAP_PROP_FRAME_HEIGHT ) << " @" <<
+    //                 cap.get(CAP_PROP_FPS) << "FPS" << endl;
 #else
     cout << "  " << cap.get(CV_CAP_PROP_FRAME_WIDTH ) << "x" <<
                     cap.get(CV_CAP_PROP_FRAME_HEIGHT ) << " @" <<
@@ -136,10 +139,13 @@ int main(int argc, char *argv[])
 #endif
     meter.reset();
 
-    Mat frame, gray;
+    //Mat frame, gray;
+    Mat gray;
+    //cv::Mat src_frame = cv::imread("/home/gensong/projects/ATDllDemo/picture/1.jpg", cv::IMREAD_GRAYSCALE);
+    cv::Mat frame = cv::imread("/home/gensong/tag/apriltag-master/example/test.jpg");
     while (true) {
         errno = 0;
-        cap >> frame;
+        // cap >> frame;
         cvtColor(frame, gray, COLOR_BGR2GRAY);
 
         // Make an image_u8_t header for the Mat data
