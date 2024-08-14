@@ -47,6 +47,22 @@ extern "C" {
 using namespace std;
 using namespace cv;
 
+#ifndef PI
+const double PI = 3.14159265358979323846;
+#endif
+const double TWOPI = 2.0*PI;
+/**
+ * 定义了角度归一化函数，角度范围统一输出范围是[-pi,pi].
+ **/
+inline double standardRad(double t) {
+  if (t >= 0.) {
+    t = fmod(t+PI, TWOPI) - PI;
+  } else {
+    t = fmod(t-PI, -TWOPI) + PI;
+  }
+  return t;
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -139,6 +155,14 @@ int main(int argc, char *argv[])
 #endif
     meter.reset();
 
+    /***********输入标定的相机参数*************/
+    apriltag_detection_info_t info;     // parameters of the camera calibrations 在这里把标定得到的四元参数输入到程序里
+    info.tagsize = 0.056; //标识的实际尺寸
+    info.fx = 652.894;
+    info.fy = 651.487;
+    info.cx = 301.857;
+    info.cy = 237.548;
+
     //Mat frame, gray;
     Mat gray;
     //cv::Mat src_frame = cv::imread("/home/gensong/projects/ATDllDemo/picture/1.jpg", cv::IMREAD_GRAYSCALE);
@@ -162,6 +186,34 @@ int main(int argc, char *argv[])
         for (int i = 0; i < zarray_size(detections); i++) {
             apriltag_detection_t *det;
             zarray_get(detections, i, &det);
+
+            /* 加入位姿估计函数 */
+            info.det = det;  // det --> info
+            apriltag_pose_t pose;
+            estimate_tag_pose(&info, &pose);
+            // double err = estimate_tag_pose(&info, &pose);
+
+            /* 将欧拉角转换成度为坐标，并归一化到[-pi,pi]范围内 */
+            double yaw = 180 * standardRad(atan2(pose.R->data[3], pose.R->data[0]));
+            double pitch = 180 * standardRad(asin(pose.R->data[6]));
+            double roll = 180 * standardRad(atan2(pose.R->data[7], pose.R->data[8]));
+
+            yaw = yaw / PI;
+            pitch = pitch / PI;
+            roll = roll / PI;
+
+            /* 输出三维位置坐标信息 */
+            cout << "THE 3D POSE: "
+                << "x = " << pose.t->data[0] << ", "
+                << "y = " << pose.t->data[1] << ", "
+                << "z = " << pose.t->data[2] << endl;
+
+            /* 输出3个欧拉角数据 */
+            cout << "yaw: " << yaw << "'" << endl;
+            cout << "pitch: " << pitch << "'" << endl;
+            cout << "roll: " << roll << "'" << endl;
+
+
             line(frame, Point(det->p[0][0], det->p[0][1]),
                      Point(det->p[1][0], det->p[1][1]),
                      Scalar(0, 0xff, 0), 2);
