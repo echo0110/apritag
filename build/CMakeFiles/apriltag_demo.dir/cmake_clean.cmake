@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
   "CMakeFiles/apriltag_demo.dir/example/apriltag_demo.c.o"
+  "CMakeFiles/apriltag_demo.dir/example/apriltag_demo.c.o.d"
   "apriltag_demo"
   "apriltag_demo.pdb"
 )

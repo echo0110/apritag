@@ -45,6 +45,5 @@
 /usr/local/share/apriltag/cmake/apriltagConfig.cmake
 /usr/local/share/apriltag/cmake/apriltagConfigVersion.cmake
 /usr/local/lib/pkgconfig/apriltag.pc
-/usr/local/lib/python3.8/site-packages/apriltag..so
 /usr/local/bin/opencv_demo
 /usr/local/bin/apriltag_demo
