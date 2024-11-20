@@ -34,7 +34,11 @@ set(default_build_type "Release")
 
 SET(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
-set(CAMERA_LIB_PATH /home/nano/EASY-EAI-Toolkit/EASY-EAI-Toolkit-C-Demo/easyeai-api/peripheral_api/camera)
+#set(CAMERA_LIB_PATH /home/nano/EASY-EAI-Toolkit/EASY-EAI-Toolkit-C-Demo/easyeai-api/peripheral_api/camera)
+set(CAMERA_LIB_PATH /home/nano/EASY-EAI-Toolkit/EASY-EAI-Toolkit-C-Demo/easyeai-api/peripheral_api/camera/build)
+set(toolkit_root /home/nano/EASY-EAI-Toolkit/EASY-EAI-Toolkit-C-Demo/easyeai-api)
+set(api_inc  ${toolkit_root}/peripheral_api/camera )
+
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
     set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE  STRING "Choose the type of build." FORCE)
@@ -195,7 +199,7 @@ if (BUILD_EXAMPLES)
     set(_OpenCV_REQUIRED_COMPONENTS core imgproc videoio highgui)
     find_package(OpenCV COMPONENTS ${_OpenCV_REQUIRED_COMPONENTS} QUIET CONFIG)
     include_directories("/usr/include/opencv4")
-    include_directories("/home/nano/EASY-EAI-Toolkit/EASY-EAI-Toolkit-C-Demo/easyeai-api/peripheral_api/camera")
+    include_directories("/home/nano/EASY-EAI-Toolkit/EASY-EAI-Toolkit-C-Demo/easyeai-api/peripheral_api/camera/")
     if(OpenCV_FOUND)
 	include_directories("/usr/include/opencv4")  # Ensure OpenCV include directories are set
         enable_language(CXX)
@@ -206,10 +210,13 @@ if (BUILD_EXAMPLES)
             find_package(OpenCV COMPONENTS ${_OpenCV_REQUIRED_COMPONENTS} CONFIG)
         endif()
 
+	link_directories(${toolkit_root}/peripheral_api/camera) #-L
         add_executable(opencv_demo example/opencv_demo.cc)
-
+        target_link_libraries(opencv_demo apriltag ${OpenCV_LIBRARIES} camera easymedia rga rkaiq pthread)
+	target_include_directories(opencv_demo PRIVATE ${api_inc})    #-I
 	#link_directories(${CAMERA_LIB_PATH})
-	target_link_libraries(opencv_demo apriltag ${OpenCV_LIBRARIES} ${CAMERA_LIB_PATH}/libcamera.a easymedia rga rkaiq pthread)
+	#link_directories(${toolkit_root}/peripheral_api/camera) #-L
+	#target_link_libraries(opencv_demo apriltag ${OpenCV_LIBRARIES} ${CAMERA_LIB_PATH}/libcamera.a easymedia rga rkaiq pthread)
 	#target_link_libraries(opencv_demo apriltag ${OpenCV_LIBRARIES} ${CAMERA_LIB_PATH}/libcamera.a camera easymedia rga rkaiq pthread)
 	#target_link_libraries(test-mipi-rgb camera easymedia rga rkaiq pthread)
 	include_directories("/usr/include/opencv4")
