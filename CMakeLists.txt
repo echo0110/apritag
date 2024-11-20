@@ -207,7 +207,11 @@ if (BUILD_EXAMPLES)
         endif()
 
         add_executable(opencv_demo example/opencv_demo.cc)
-        target_link_libraries(opencv_demo apriltag ${OpenCV_LIBRARIES} ${CAMERA_LIB_PATH}/libcamera.a)
+
+	#link_directories(${CAMERA_LIB_PATH})
+	target_link_libraries(opencv_demo apriltag ${OpenCV_LIBRARIES} ${CAMERA_LIB_PATH}/libcamera.a easymedia rga rkaiq pthread)
+	#target_link_libraries(opencv_demo apriltag ${OpenCV_LIBRARIES} ${CAMERA_LIB_PATH}/libcamera.a camera easymedia rga rkaiq pthread)
+	#target_link_libraries(test-mipi-rgb camera easymedia rga rkaiq pthread)
 	include_directories("/usr/include/opencv4")
         set_target_properties(opencv_demo PROPERTIES CXX_STANDARD 11)
         install(TARGETS opencv_demo RUNTIME DESTINATION bin)
