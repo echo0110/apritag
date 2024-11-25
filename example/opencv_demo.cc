@@ -44,7 +44,7 @@ extern "C" {
 #include "common/getopt.h"
 }
 #include "apriltag_pose.h"
-/*rv11236 begin*/
+/*rv1126 begin*/
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
@@ -80,7 +80,6 @@ cv::Mat acquire_image()
 {
     char *pbuf = NULL;
     int ret = 0;
-    
     pbuf = (char *)malloc(IMAGE_SIZE);
     if (!pbuf) {
         fprintf(stderr, "error: memory allocation failed: %s, %d\n", __func__, __LINE__);
@@ -97,30 +96,14 @@ cv::Mat acquire_image()
 
     // 转换为Mat格式（BGR）
     cv::Mat color_image(CAMERA_HEIGHT, CAMERA_WIDTH, CV_8UC3, pbuf);
-    
+#if 0   
     // 直接转换为灰度图
     cv::Mat gray_image;
     cv::cvtColor(color_image, gray_image, COLOR_BGR2GRAY);
-    
+#endif  
     free(pbuf);
-    return gray_image;  // 返回灰度图
+    return color_image;  
 }
-
-// 在main函数中相应的修改
-// while (true) {
-//     // 获取新的灰度图帧
-//     gray = acquire_image();  // 直接获取灰度图
-//     if (gray.empty()) {
-//         fprintf(stderr, "error: failed to acquire frame\n");
-//         break;
-//     }
-    
-//     // 直接使用灰度图进行AprilTag检测
-//     image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
-//     zarray_t *detections = apriltag_detector_detect(td, &im);
-    
-//     // ... 后续代码保持不变 ...
-// }
 
 
 int main(int argc, char *argv[])
@@ -223,20 +206,16 @@ int main(int argc, char *argv[])
     info.cy = 237.548;
 
     //Mat frame, gray;
-    Mat gray;
-    //cv::Mat src_frame = cv::imread("/home/gensong/projects/ATDllDemo/picture/1.jpg", cv::IMREAD_GRAYSCALE);
-    //cv::Mat frame = cv::imread("/home/gensong/tag/apriltag-master/example/test.jpg");
-    //cv::Mat frame = acquire_image();
-    gray = acquire_image();  // 直接获取灰度图
-    if (gray.empty()) {
+    Mat rgb_image,gray;
+    rgb_image = acquire_image();  
+    if (rgb_image.empty()) {
         fprintf(stderr, "error: failed to acquire frame\n");
-        break;
+        //break;
     }
     printf("**********************************99999999999999999999999999");
     while (true) {
         errno = 0;
-        // cap >> frame;
-        //cvtColor(frame, gray, COLOR_BGR2GRAY);
+        cvtColor(rgb_image, gray, COLOR_BGR2GRAY);
 
         // Make an image_u8_t header for the Mat data
         image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
@@ -280,16 +259,16 @@ int main(int argc, char *argv[])
             cout << "roll: " << roll << "'" << endl;
 
 
-            line(frame, Point(det->p[0][0], det->p[0][1]),
+            line(rgb_image, Point(det->p[0][0], det->p[0][1]),
                      Point(det->p[1][0], det->p[1][1]),
                      Scalar(0, 0xff, 0), 2);
-            line(frame, Point(det->p[0][0], det->p[0][1]),
+            line(rgb_image, Point(det->p[0][0], det->p[0][1]),
                      Point(det->p[3][0], det->p[3][1]),
                      Scalar(0, 0, 0xff), 2);
-            line(frame, Point(det->p[1][0], det->p[1][1]),
+            line(rgb_image, Point(det->p[1][0], det->p[1][1]),
                      Point(det->p[2][0], det->p[2][1]),
                      Scalar(0xff, 0, 0), 2);
-            line(frame, Point(det->p[2][0], det->p[2][1]),
+            line(rgb_image, Point(det->p[2][0], det->p[2][1]),
                      Point(det->p[3][0], det->p[3][1]),
                      Scalar(0xff, 0, 0), 2);
 
@@ -301,7 +280,7 @@ int main(int argc, char *argv[])
             int baseline;
             Size textsize = getTextSize(text, fontface, fontscale, 2,
                                             &baseline);
-            putText(frame, text, Point(det->c[0]-textsize.width/2,
+            putText(rgb_image, text, Point(det->c[0]-textsize.width/2,
                                        det->c[1]+textsize.height/2),
                     fontface, fontscale, Scalar(0xff, 0x99, 0), 2);
         }
@@ -309,8 +288,8 @@ int main(int argc, char *argv[])
 
         // imshow("Tag Detections", frame);
         // if (waitKey(30) >= 0)
-        imwrite("tag_detections.jpg", frame);
-        break;
+        imwrite("tag_detections.jpg", rgb_image);
+            break;
     }
 
     apriltag_detector_destroy(td);
