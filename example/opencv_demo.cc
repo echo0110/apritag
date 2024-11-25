@@ -76,102 +76,51 @@ inline double standardRad(double t) {
 }
 
 
-// int main()
-// {
-// 	char *pbuf = NULL;
-// 	int ret = 0;
-// 	int skip = 0;
-// 	FILE *fp = NULL;
-//     printf("#########func is %s,%d \n",__func__,__LINE__);
-// 	ret = ircamera_init(CAMERA_WIDTH, CAMERA_HEIGHT, 270);
-// 	if (ret) {
-// 		printf("error: %s, %d\n", __func__, __LINE__);
-// 		goto exit3;
-// 	}
-
-// 	pbuf = (char *)malloc(IMAGE_SIZE);
-// 	if (!pbuf) {
-// 		printf("error: %s, %d\n", __func__, __LINE__);
-// 		ret = -1;
-// 		goto exit2;
-// 	}
-
-// 	//跳过前10帧
-// 	skip = 10;
-// 	while(skip--) {
-// 		ret = ircamera_getframe(pbuf);
-// 		if (ret) {
-// 			printf("error: %s, %d\n", __func__, __LINE__);
-// 			goto exit1;
-// 		}
-// 	}
-
-// 	/* tips: 可以在Ubuntu下用mplayer播放录制图像
-// 	*	adb pull /tmp/photo
-// 	*	mplayer -demuxer rawvideo -rawvideo w=720:h=1280:format=bgr24 photo -loop 0
-// 	*/
-// 	fp = fopen("/tmp/photo", "w");
-// 	if (!fp) {
-// 		printf("error: %s, %d\n", __func__, __LINE__);
-// 		ret = -1;
-// 		goto exit2;
-// 	}
-// 	fwrite(pbuf, 1, IMAGE_SIZE, fp);
-// 	fclose(fp);
-
-// exit1:
-// 	free(pbuf);
-// 	pbuf = NULL;
-// exit2:
-// 	ircamera_exit();
-// exit3:
-//     return ret;
-// }
 cv::Mat acquire_image()
 {
     char *pbuf = NULL;
     int ret = 0;
-    int skip = 0;
     
-    // Initialize camera
-    ret = ircamera_init(CAMERA_WIDTH, CAMERA_HEIGHT, 270);
-    if (ret) {
-        fprintf(stderr, "error: %s, %d\n", __func__, __LINE__);
-        //return cv::Mat(); // Return an empty image on error
-    }
-
     pbuf = (char *)malloc(IMAGE_SIZE);
     if (!pbuf) {
-        fprintf(stderr, "error: %s, %d\n", __func__, __LINE__);
-        ircamera_exit();
-        return cv::Mat(); // Return an empty image on error
+        fprintf(stderr, "error: memory allocation failed: %s, %d\n", __func__, __LINE__);
+        return cv::Mat();
     }
 
-    // Skip the first 10 frames
-    skip = 10;
-    while (skip--) {
-        ret = ircamera_getframe(pbuf);
-        if (ret) {
-            fprintf(stderr, "error: %s, %d\n", __func__, __LINE__);
-            free(pbuf);
-            ircamera_exit();
-            return cv::Mat(); // Return an empty image on error
-        }
+    // 获取一帧图像
+    ret = ircamera_getframe(pbuf);
+    if (ret) {
+        fprintf(stderr, "error: frame acquisition failed: %s, %d\n", __func__, __LINE__);
+        free(pbuf);
+        return cv::Mat();
     }
 
-    // Convert acquired data to cv::Mat
-    cv::Mat image(CAMERA_HEIGHT, CAMERA_WIDTH, CV_8UC3, pbuf);
-
-    // Copy the image data to avoid memory issues
-    cv::Mat output_image = image.clone();
+    // 转换为Mat格式（BGR）
+    cv::Mat color_image(CAMERA_HEIGHT, CAMERA_WIDTH, CV_8UC3, pbuf);
+    
+    // 直接转换为灰度图
+    cv::Mat gray_image;
+    cv::cvtColor(color_image, gray_image, COLOR_BGR2GRAY);
+    
     free(pbuf);
-    pbuf = NULL;
-
-    // Clean up
-    ircamera_exit();
-
-    return output_image;
+    return gray_image;  // 返回灰度图
 }
+
+// 在main函数中相应的修改
+// while (true) {
+//     // 获取新的灰度图帧
+//     gray = acquire_image();  // 直接获取灰度图
+//     if (gray.empty()) {
+//         fprintf(stderr, "error: failed to acquire frame\n");
+//         break;
+//     }
+    
+//     // 直接使用灰度图进行AprilTag检测
+//     image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
+//     zarray_t *detections = apriltag_detector_detect(td, &im);
+    
+//     // ... 后续代码保持不变 ...
+// }
 
 
 int main(int argc, char *argv[])
@@ -277,12 +226,17 @@ int main(int argc, char *argv[])
     Mat gray;
     //cv::Mat src_frame = cv::imread("/home/gensong/projects/ATDllDemo/picture/1.jpg", cv::IMREAD_GRAYSCALE);
     //cv::Mat frame = cv::imread("/home/gensong/tag/apriltag-master/example/test.jpg");
-    cv::Mat frame = acquire_image();
+    //cv::Mat frame = acquire_image();
+    gray = acquire_image();  // 直接获取灰度图
+    if (gray.empty()) {
+        fprintf(stderr, "error: failed to acquire frame\n");
+        break;
+    }
     printf("**********************************99999999999999999999999999");
     while (true) {
         errno = 0;
         // cap >> frame;
-        cvtColor(frame, gray, COLOR_BGR2GRAY);
+        //cvtColor(frame, gray, COLOR_BGR2GRAY);
 
         // Make an image_u8_t header for the Mat data
         image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
