@@ -88,15 +88,6 @@ cv::Mat acquire_image()
         return cv::Mat();
     }
 
-
-    // // 获取一帧图像
-    // ret = ircamera_getframe(pbuf);
-    // if (ret) {
-    //     fprintf(stderr, "error: frame acquisition failed: %s, %d\n", __func__, __LINE__);
-    //     free(pbuf);
-    //     //return cv::Mat();
-    // }
-
     //跳过前10帧
 	skip = 10;
 	while(skip--) {
@@ -108,23 +99,23 @@ cv::Mat acquire_image()
 
     // 转换为Mat格式（BGR）
     cv::Mat color_image(CAMERA_HEIGHT, CAMERA_WIDTH, CV_8UC3, pbuf);
+    memcpy(color_image.data, pbuf, IMAGE_SIZE);
+
+    cv::Mat gray_image;
+    cv::cvtColor(color_image, gray_image, COLOR_BGR2GRAY);
 #if 0   
     // 直接转换为灰度图
     cv::Mat gray_image;
     cv::cvtColor(color_image, gray_image, COLOR_BGR2GRAY);
 #endif  
     free(pbuf);
-    return color_image;  
+    return gray_image;  
 }
 
 
 int main(int argc, char *argv[])
 {
     printf("**********************************99999999999999999999999999");
-
-    cv::Mat rgb_image,gray;
-    rgb_image = acquire_image(); 
-    return 0;
 
     getopt_t *getopt = getopt_create();
 
@@ -150,15 +141,6 @@ int main(int argc, char *argv[])
     TickMeter meter;
     meter.start();
 
-    // Initialize camera
-   
-#if 0
-    VideoCapture cap(getopt_get_int(getopt, "camera"));
-    if (!cap.isOpened()) {
-        cerr << "Couldn't open video capture device" << endl;
-        return -1;
-    }
-#endif
     // Initialize tag detector with options
     apriltag_family_t *tf = NULL;
     const char *famname = getopt_get_string(getopt, "family");
@@ -185,7 +167,7 @@ int main(int argc, char *argv[])
         exit(-1);
     }
 
-
+    printf("func is %s,%d,%s\n",__func__,__LINE__,"##############");
     apriltag_detector_t *td = apriltag_detector_create();
     apriltag_detector_add_family(td, tf);
 
@@ -222,18 +204,16 @@ int main(int argc, char *argv[])
     info.cx = 301.857;
     info.cy = 237.548;
 
-    //Mat frame, gray;
-    //Mat rgb_image,gray;
-    // rgb_image = acquire_image();  
-    // if (rgb_image.empty()) {
-    //     fprintf(stderr, "error: failed to acquire frame\n");
-    //     //break;
-    // }
-    // printf("**********************************99999999999999999999999999");
+    cv::Mat gray_image,gray;
+    gray = acquire_image();  
+   
+    printf("func is %s,%d,%s\n",__func__,__LINE__,"##############");
     while (true) {
         errno = 0;
-        cvtColor(rgb_image, gray, COLOR_BGR2GRAY);
-
+        // gray = cv::Mat(rgb_image.rows, rgb_image.cols, CV_8UC1);
+        // printf("func is %s,%d,%s\n",__func__,__LINE__,"##############");
+        // cvtColor(rgb_image, gray, COLOR_BGR2GRAY);
+        // printf("func is %s,%d,%s\n",__func__,__LINE__,"##############");
         // Make an image_u8_t header for the Mat data
         image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
 
@@ -276,16 +256,16 @@ int main(int argc, char *argv[])
             cout << "roll: " << roll << "'" << endl;
 
 
-            line(rgb_image, Point(det->p[0][0], det->p[0][1]),
+            line(gray, Point(det->p[0][0], det->p[0][1]),
                      Point(det->p[1][0], det->p[1][1]),
                      Scalar(0, 0xff, 0), 2);
-            line(rgb_image, Point(det->p[0][0], det->p[0][1]),
+            line(gray, Point(det->p[0][0], det->p[0][1]),
                      Point(det->p[3][0], det->p[3][1]),
                      Scalar(0, 0, 0xff), 2);
-            line(rgb_image, Point(det->p[1][0], det->p[1][1]),
+            line(gray, Point(det->p[1][0], det->p[1][1]),
                      Point(det->p[2][0], det->p[2][1]),
                      Scalar(0xff, 0, 0), 2);
-            line(rgb_image, Point(det->p[2][0], det->p[2][1]),
+            line(gray, Point(det->p[2][0], det->p[2][1]),
                      Point(det->p[3][0], det->p[3][1]),
                      Scalar(0xff, 0, 0), 2);
 
@@ -297,15 +277,15 @@ int main(int argc, char *argv[])
             int baseline;
             Size textsize = getTextSize(text, fontface, fontscale, 2,
                                             &baseline);
-            putText(rgb_image, text, Point(det->c[0]-textsize.width/2,
+            putText(gray, text, Point(det->c[0]-textsize.width/2,
                                        det->c[1]+textsize.height/2),
                     fontface, fontscale, Scalar(0xff, 0x99, 0), 2);
         }
         apriltag_detections_destroy(detections);
-
+        printf("**********************************2222");
         // imshow("Tag Detections", frame);
         // if (waitKey(30) >= 0)
-        imwrite("tag_detections.jpg", rgb_image);
+        imwrite("tag_detections.jpg", gray);
             break;
     }
 
