@@ -80,19 +80,31 @@ cv::Mat acquire_image()
 {
     char *pbuf = NULL;
     int ret = 0;
+    int skip = 0;
+    ret = ircamera_init(CAMERA_WIDTH, CAMERA_HEIGHT, 270);
     pbuf = (char *)malloc(IMAGE_SIZE);
     if (!pbuf) {
         fprintf(stderr, "error: memory allocation failed: %s, %d\n", __func__, __LINE__);
         return cv::Mat();
     }
 
-    // 获取一帧图像
-    ret = ircamera_getframe(pbuf);
-    if (ret) {
-        fprintf(stderr, "error: frame acquisition failed: %s, %d\n", __func__, __LINE__);
-        free(pbuf);
-        return cv::Mat();
-    }
+
+    // // 获取一帧图像
+    // ret = ircamera_getframe(pbuf);
+    // if (ret) {
+    //     fprintf(stderr, "error: frame acquisition failed: %s, %d\n", __func__, __LINE__);
+    //     free(pbuf);
+    //     //return cv::Mat();
+    // }
+
+    //跳过前10帧
+	skip = 10;
+	while(skip--) {
+		ret = rgbcamera_getframe(pbuf);
+		if (ret) {
+			printf("error: %s, %d\n", __func__, __LINE__);
+		}
+	}
 
     // 转换为Mat格式（BGR）
     cv::Mat color_image(CAMERA_HEIGHT, CAMERA_WIDTH, CV_8UC3, pbuf);
@@ -109,6 +121,11 @@ cv::Mat acquire_image()
 int main(int argc, char *argv[])
 {
     printf("**********************************99999999999999999999999999");
+
+    cv::Mat rgb_image,gray;
+    rgb_image = acquire_image(); 
+    return 0;
+
     getopt_t *getopt = getopt_create();
 
     getopt_add_bool(getopt, 'h', "help", 0, "Show this help");
@@ -206,13 +223,13 @@ int main(int argc, char *argv[])
     info.cy = 237.548;
 
     //Mat frame, gray;
-    Mat rgb_image,gray;
-    rgb_image = acquire_image();  
-    if (rgb_image.empty()) {
-        fprintf(stderr, "error: failed to acquire frame\n");
-        //break;
-    }
-    printf("**********************************99999999999999999999999999");
+    //Mat rgb_image,gray;
+    // rgb_image = acquire_image();  
+    // if (rgb_image.empty()) {
+    //     fprintf(stderr, "error: failed to acquire frame\n");
+    //     //break;
+    // }
+    // printf("**********************************99999999999999999999999999");
     while (true) {
         errno = 0;
         cvtColor(rgb_image, gray, COLOR_BGR2GRAY);
