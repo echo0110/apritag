@@ -55,6 +55,64 @@ extern "C" {
 #define CAMERA_HEIGHT	1080
 #define	IMGRATIO		3
 #define	IMAGE_SIZE		(CAMERA_WIDTH*CAMERA_HEIGHT*IMGRATIO)
+
+//=====================  RTSP  =====================
+#include "rtspServer/rtspServer.h"
+#include "enCoder/enCoder.h"
+
+// Global RTSP configuration
+const char* DEFAULT_RTSP_URL = "rtsp://admin:admin@192.168.1.108:554/stream1";
+bool use_rtsp = false;
+string rtsp_url;
+
+// RTSP streaming configuration
+#define RTSP_PORT 8554
+#define RTSP_STREAM_NAME "apriltag"
+static bool rtsp_initialized = false;
+
+// Function to initialize RTSP server
+bool init_rtsp_server() {
+    if (rtsp_initialized) return true;
+    
+    // Initialize encoder
+    if (enCoderInit("apriltag") != 0) {
+        cerr << "Failed to initialize encoder" << endl;
+        return false;
+    }
+    
+    // Initialize RTSP server
+    if (rtspServerInit(RTSP_PORT) != 0) {
+        cerr << "Failed to initialize RTSP server" << endl;
+        return false;
+    }
+    
+    rtsp_initialized = true;
+    cout << "RTSP server initialized on port " << RTSP_PORT << endl;
+    cout << "Stream URL: rtsp://[your-ip]:" << RTSP_PORT << "/" << RTSP_STREAM_NAME << endl;
+    return true;
+}
+
+// Function to stream frame via RTSP
+void stream_frame(const cv::Mat& frame) {
+    if (!rtsp_initialized) {
+        if (!init_rtsp_server()) {
+            return;
+        }
+    }
+    
+    // Convert frame to required format if necessary
+    cv::Mat stream_frame;
+    if (frame.channels() == 1) {
+        cv::cvtColor(frame, stream_frame, cv::COLOR_GRAY2BGR);
+    } else {
+        stream_frame = frame;
+    }
+    
+    // Send frame to RTSP server
+    // Note: You might need to adjust the format and parameters based on your RTSP server implementation
+    rtspServerPushFrame((char*)stream_frame.data, stream_frame.total() * stream_frame.elemSize());
+}
+
 /*end*/
 using namespace std;
 using namespace cv;
@@ -78,38 +136,55 @@ inline double standardRad(double t) {
 
 cv::Mat acquire_image()
 {
-    char *pbuf = NULL;
-    int ret = 0;
-    int skip = 0;
-    ret = ircamera_init(CAMERA_WIDTH, CAMERA_HEIGHT, 270);
-    pbuf = (char *)malloc(IMAGE_SIZE);
-    if (!pbuf) {
-        fprintf(stderr, "error: memory allocation failed: %s, %d\n", __func__, __LINE__);
-        return cv::Mat();
+    static cv::VideoCapture cap;
+    static bool initialized = false;
+    cv::Mat frame;
+
+    if (!initialized) {
+        if (use_rtsp) {
+            // Open RTSP stream
+            cap.open(rtsp_url);
+            if (!cap.isOpened()) {
+                cerr << "Failed to open RTSP stream: " << rtsp_url << endl;
+                return cv::Mat();
+            }
+        } else {
+            // Use original camera initialization
+            int ret = ircamera_init(CAMERA_WIDTH, CAMERA_HEIGHT, 270);
+            if (ret != 0) {
+                cerr << "Failed to initialize camera" << endl;
+                return cv::Mat();
+            }
+        }
+        initialized = true;
     }
 
-    //跳过前10帧
-	skip = 10;
-	while(skip--) {
-		ret = rgbcamera_getframe(pbuf);
-		if (ret) {
-			printf("error: %s, %d\n", __func__, __LINE__);
-		}
-	}
+    if (use_rtsp) {
+        // Get frame from RTSP stream
+        if (!cap.read(frame)) {
+            cerr << "Failed to read frame from RTSP stream" << endl;
+            return cv::Mat();
+        }
+        return frame;
+    } else {
+        // Original camera code
+        char *pbuf = (char *)malloc(IMAGE_SIZE);
+        if (!pbuf) {
+            fprintf(stderr, "error: memory allocation failed: %s, %d\n", __func__, __LINE__);
+            return cv::Mat();
+        }
 
-    // 转换为Mat格式（BGR）
-    cv::Mat color_image(CAMERA_HEIGHT, CAMERA_WIDTH, CV_8UC3, pbuf);
-    memcpy(color_image.data, pbuf, IMAGE_SIZE);
+        int ret = rgbcamera_getframe(pbuf);
+        if (ret) {
+            free(pbuf);
+            return cv::Mat();
+        }
 
-    cv::Mat gray_image;
-    cv::cvtColor(color_image, gray_image, COLOR_BGR2GRAY);
-#if 0   
-    // 直接转换为灰度图
-    cv::Mat gray_image;
-    cv::cvtColor(color_image, gray_image, COLOR_BGR2GRAY);
-#endif  
-    free(pbuf);
-    return gray_image;  
+        cv::Mat color_image(CAMERA_HEIGHT, CAMERA_WIDTH, CV_8UC3, pbuf);
+        cv::Mat result = color_image.clone();
+        free(pbuf);
+        return result;
+    }
 }
 
 
@@ -128,6 +203,8 @@ int main(int argc, char *argv[])
     getopt_add_double(getopt, 'x', "decimate", "2.0", "Decimate input image by this factor");
     getopt_add_double(getopt, 'b', "blur", "0.0", "Apply low-pass blur to input");
     getopt_add_bool(getopt, '0', "refine-edges", 1, "Spend more time trying to align edges of tags");
+    getopt_add_bool(getopt, 'r', "rtsp", 0, "Use RTSP stream instead of local camera");
+    getopt_add_string(getopt, 'u', "url", DEFAULT_RTSP_URL, "RTSP URL (used only with -r)");
 
     if (!getopt_parse(getopt, argc, argv, 1) ||
             getopt_get_bool(getopt, "help")) {
@@ -140,6 +217,13 @@ int main(int argc, char *argv[])
 
     TickMeter meter;
     meter.start();
+
+    // Configure RTSP if requested
+    use_rtsp = getopt_get_bool(getopt, "rtsp");
+    if (use_rtsp) {
+        rtsp_url = getopt_get_string(getopt, "url");
+        cout << "Using RTSP stream from: " << rtsp_url << endl;
+    }
 
     // Initialize tag detector with options
     apriltag_family_t *tf = NULL;
@@ -208,7 +292,7 @@ int main(int argc, char *argv[])
     gray = acquire_image();  
    
     printf("func is %s,%d,%s\n",__func__,__LINE__,"##############");
-    while (true) {
+    while (1) {
         errno = 0;
         // gray = cv::Mat(rgb_image.rows, rgb_image.cols, CV_8UC1);
         // printf("func is %s,%d,%s\n",__func__,__LINE__,"##############");
@@ -278,15 +362,13 @@ int main(int argc, char *argv[])
             Size textsize = getTextSize(text, fontface, fontscale, 2,
                                             &baseline);
             putText(gray, text, Point(det->c[0]-textsize.width/2,
-                                       det->c[1]+textsize.height/2),
+                                           det->c[1]+textsize.height/2),
                     fontface, fontscale, Scalar(0xff, 0x99, 0), 2);
         }
         apriltag_detections_destroy(detections);
         printf("**********************************2222");
-        // imshow("Tag Detections", frame);
-        // if (waitKey(30) >= 0)
-        imwrite("tag_detections.jpg", gray);
-            break;
+        // Instead of imshow and imwrite, stream the frame via RTSP
+        stream_frame(gray);
     }
 
     apriltag_detector_destroy(td);
@@ -315,5 +397,3 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-
-

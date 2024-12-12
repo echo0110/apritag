@@ -38,6 +38,8 @@ SET(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 set(CAMERA_LIB_PATH /home/nano/EASY-EAI-Toolkit/EASY-EAI-Toolkit-C-Demo/easyeai-api/peripheral_api/camera/build)
 set(toolkit_root /home/nano/EASY-EAI-Toolkit/EASY-EAI-Toolkit-C-Demo/easyeai-api)
 set(api_inc  ${toolkit_root}/peripheral_api/camera )
+set(rtspServer_inc /home/nano/tag/apriltag-master/rtspServer)
+set(enCoder_inc /home/nano/tag/apriltag-master/enCoder)
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
@@ -194,14 +196,14 @@ if (BUILD_EXAMPLES)
     # apriltag_demo
     add_executable(apriltag_demo example/apriltag_demo.c)
     target_link_libraries(apriltag_demo ${PROJECT_NAME})
-    
+
     # opencv_demo
     set(_OpenCV_REQUIRED_COMPONENTS core imgproc videoio highgui)
     find_package(OpenCV COMPONENTS ${_OpenCV_REQUIRED_COMPONENTS} QUIET CONFIG)
     include_directories("/usr/include/opencv4")
     include_directories("/home/nano/EASY-EAI-Toolkit/EASY-EAI-Toolkit-C-Demo/easyeai-api/peripheral_api/camera/")
     if(OpenCV_FOUND)
-	include_directories("/usr/include/opencv4")  # Ensure OpenCV include directories are set
+        include_directories("/usr/include/opencv4")  # Ensure OpenCV include directories are set
         enable_language(CXX)
         # NB: contrib required for TickMeter in OpenCV 2.4. This is only required for 16.04 backwards compatibility and can be removed in the future.
         #     If we add it to the find_package initially, the demo won't build for newer OpenCV versions
@@ -210,16 +212,17 @@ if (BUILD_EXAMPLES)
             find_package(OpenCV COMPONENTS ${_OpenCV_REQUIRED_COMPONENTS} CONFIG)
         endif()
 
-	link_directories(${toolkit_root}/peripheral_api/camera) #-L
-        add_executable(opencv_demo example/opencv_demo.cc)
+        link_directories(${toolkit_root}/peripheral_api/camera) #-L
+        add_executable(opencv_demo 
+            example/opencv_demo.cc
+            rtspServer/rtspServer.cpp
+            enCoder/enCoder.cpp
+        )
         target_link_libraries(opencv_demo apriltag ${OpenCV_LIBRARIES} camera easymedia rga rkaiq pthread)
-	target_include_directories(opencv_demo PRIVATE ${api_inc})    #-I
-	#link_directories(${CAMERA_LIB_PATH})
-	#link_directories(${toolkit_root}/peripheral_api/camera) #-L
-	#target_link_libraries(opencv_demo apriltag ${OpenCV_LIBRARIES} ${CAMERA_LIB_PATH}/libcamera.a easymedia rga rkaiq pthread)
-	#target_link_libraries(opencv_demo apriltag ${OpenCV_LIBRARIES} ${CAMERA_LIB_PATH}/libcamera.a camera easymedia rga rkaiq pthread)
-	#target_link_libraries(test-mipi-rgb camera easymedia rga rkaiq pthread)
-	include_directories("/usr/include/opencv4")
+        target_include_directories(opencv_demo PRIVATE ${api_inc})    #-I
+        target_include_directories(opencv_demo PRIVATE ${rtspServer_inc})    #-I
+        target_include_directories(opencv_demo PRIVATE ${enCoder_inc})    #-I
+        include_directories("/usr/include/opencv4")
         set_target_properties(opencv_demo PROPERTIES CXX_STANDARD 11)
         install(TARGETS opencv_demo RUNTIME DESTINATION bin)
     else()
