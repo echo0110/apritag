@@ -50,7 +50,7 @@ extern "C" {
 #include <signal.h>
 
 #include <camera.h>
-
+#include <string>
 #define CAMERA_WIDTH	1920
 #define CAMERA_HEIGHT	1080
 #define	IMGRATIO		3
@@ -63,10 +63,10 @@ extern "C" {
 // Global RTSP configuration
 const char* DEFAULT_RTSP_URL = "rtsp://admin:admin@192.168.1.108:554/stream1";
 bool use_rtsp = false;
-string rtsp_url;
+std::string rtsp_url;
 
 // RTSP streaming configuration
-#define RTSP_PORT 8554
+#define RTSP_PORT "8554"
 #define RTSP_STREAM_NAME "apriltag"
 static bool rtsp_initialized = false;
 
@@ -76,19 +76,19 @@ bool init_rtsp_server() {
     
     // Initialize encoder
     if (enCoderInit("apriltag") != 0) {
-        cerr << "Failed to initialize encoder" << endl;
+        std::cerr << "Failed to initialize encoder" << std::endl;
         return false;
     }
     
     // Initialize RTSP server
     if (rtspServerInit(RTSP_PORT) != 0) {
-        cerr << "Failed to initialize RTSP server" << endl;
+        std::cerr << "Failed to initialize RTSP server" <<std::endl;
         return false;
     }
     
     rtsp_initialized = true;
-    cout << "RTSP server initialized on port " << RTSP_PORT << endl;
-    cout << "Stream URL: rtsp://[your-ip]:" << RTSP_PORT << "/" << RTSP_STREAM_NAME << endl;
+    std::cout << "RTSP server initialized on port " << RTSP_PORT << std::endl;
+    std::cout << "Stream URL: rtsp://[your-ip]:" << RTSP_PORT << "/" << RTSP_STREAM_NAME << std::endl;
     return true;
 }
 
@@ -110,7 +110,7 @@ void stream_frame(const cv::Mat& frame) {
     
     // Send frame to RTSP server
     // Note: You might need to adjust the format and parameters based on your RTSP server implementation
-    rtspServerPushFrame((char*)stream_frame.data, stream_frame.total() * stream_frame.elemSize());
+    //rtspServerPushFrame((char*)stream_frame.data, stream_frame.total() * stream_frame.elemSize());
 }
 
 /*end*/

@@ -16,6 +16,7 @@
 #include "config.h"
 
 #include "enCoder.h"
+#include "audio.h"
 
 #define CAMERA_WIDTH	1920
 #define CAMERA_HEIGHT	1080
@@ -173,6 +174,7 @@ int32_t AACStreamOutpuHandle(void *obj, AudioNodeDesc *pNodeDesc, uint8_t *pADTS
 
 void *audioCapture_thread(void *para)
 {
+#if 0
     // 播放器对象
     Recorder_para_t *pPara = (Recorder_para_t *)para;
 
@@ -232,6 +234,7 @@ void *audioCapture_thread(void *para)
     
     pPara->aCaptureIsRunning = false;
 	pthread_exit(NULL);
+#endif
 }
 
 int enCoderInit(const char *moduleName)
@@ -275,7 +278,7 @@ int enCoderInit(const char *moduleName)
     // 4.1: 创建视频采集线程
     CreateNormalThread(videoCapture_thread, &recPara, &videoTid);
     // 4.2: 创建音频采集线程
-    CreateNormalThread(audioCapture_thread, &recPara, &audioTid);
+   // CreateNormalThread(audioCapture_thread, &recPara, &audioTid);
 
     // 5: 进入一个休眠循环，直到视频，音频录制结束
     sleep(2);

@@ -37,9 +37,38 @@ SET(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 #set(CAMERA_LIB_PATH /home/nano/EASY-EAI-Toolkit/EASY-EAI-Toolkit-C-Demo/easyeai-api/peripheral_api/camera)
 set(CAMERA_LIB_PATH /home/nano/EASY-EAI-Toolkit/EASY-EAI-Toolkit-C-Demo/easyeai-api/peripheral_api/camera/build)
 set(toolkit_root /home/nano/EASY-EAI-Toolkit/EASY-EAI-Toolkit-C-Demo/easyeai-api)
-set(api_inc  ${toolkit_root}/peripheral_api/camera )
+#set(api_inc  ${toolkit_root}/peripheral_api/camera )
 set(rtspServer_inc /home/nano/tag/apriltag-master/rtspServer)
 set(enCoder_inc /home/nano/tag/apriltag-master/enCoder)
+set(include_inc /home/nano/tag/apriltag-master/include)
+# -I
+set(api_inc
+   ${toolkit_root}/algorithm_api/person_detect
+   ${toolkit_root}/common_api/system_opt
+   ${toolkit_root}/common_api/log_manager
+   ${toolkit_root}/media_api/frame_queue
+   ${toolkit_root}/media_api/endeCode_api
+   ${toolkit_root}/netProtocol_api/rtsp
+   ${toolkit_root}/peripheral_api/audio
+   ${toolkit_root}/peripheral_api/camera
+   )
+# -L
+link_directories(${toolkit_root}/algorithm_api/person_detect)
+link_directories(${toolkit_root}/common_api/system_opt)
+link_directories(${toolkit_root}/common_api/log_manager)
+link_directories(${toolkit_root}/media_api/frame_queue)
+link_directories(${toolkit_root}/media_api/endeCode_api)
+link_directories(${toolkit_root}/netProtocol_api/rtsp)
+link_directories(${toolkit_root}/peripheral_api/audio)
+link_directories(${toolkit_root}/peripheral_api/camera)
+# -l
+LINK_LIBRARIES( system_opt )
+LINK_LIBRARIES( log_manager ini )
+LINK_LIBRARIES( endeCode_api easymedia rockchip_mpp avcodec swresample avutil)
+LINK_LIBRARIES( frame_queue )
+LINK_LIBRARIES( rtsp )
+LINK_LIBRARIES( camera easymedia rga rkaiq )
+#LINK_LIBRARIES( audio easymedia asound pthread )
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
@@ -49,7 +78,8 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
-    add_compile_options(-Wall -Wextra -Werror)
+	#add_compile_options(-Wall -Wextra -Werror)
+    add_compile_options(-Wall -Wextra )
     # add_compile_options(-Wpedantic)
     add_compile_options(-Wno-shift-negative-value)
 endif()
@@ -222,6 +252,7 @@ if (BUILD_EXAMPLES)
         target_include_directories(opencv_demo PRIVATE ${api_inc})    #-I
         target_include_directories(opencv_demo PRIVATE ${rtspServer_inc})    #-I
         target_include_directories(opencv_demo PRIVATE ${enCoder_inc})    #-I
+        target_include_directories(opencv_demo PRIVATE ${include_inc})    #-I
         include_directories("/usr/include/opencv4")
         set_target_properties(opencv_demo PROPERTIES CXX_STANDARD 11)
         install(TARGETS opencv_demo RUNTIME DESTINATION bin)
