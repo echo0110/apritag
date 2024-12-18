@@ -236,7 +236,12 @@ if (BUILD_EXAMPLES)
         include_directories("/usr/include/opencv4")  # Ensure OpenCV include directories are set
         enable_language(CXX)
         # NB: contrib required for TickMeter in OpenCV 2.4. This is only required for 16.04 backwards compatibility and can be removed in the future.
-        #     If we add it to the find_package initially, the demo won't build for newer OpenCV versions
+       
+	set(CAMERA_SOURCES
+            camera_capture.cpp
+            camera_capture.h
+        )       
+	#     If we add it to the find_package initially, the demo won't build for newer OpenCV versions
         if(OpenCV_VERSION VERSION_LESS "3.0.0")
             list(APPEND _OpenCV_REQUIRED_COMPONENTS contrib)
             find_package(OpenCV COMPONENTS ${_OpenCV_REQUIRED_COMPONENTS} CONFIG)
@@ -247,8 +252,16 @@ if (BUILD_EXAMPLES)
             example/opencv_demo.cc
             rtspServer/rtspServer.cpp
             enCoder/enCoder.cpp
+	    ${CAMERA_SOURCES}
         )
         target_link_libraries(opencv_demo apriltag ${OpenCV_LIBRARIES} camera easymedia rga rkaiq pthread)
+        target_include_directories(opencv_demo PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR} 
+            ${api_inc}
+            ${rtspServer_inc}
+            ${enCoder_inc}
+            ${include_inc}
+        )
         target_include_directories(opencv_demo PRIVATE ${api_inc})    #-I
         target_include_directories(opencv_demo PRIVATE ${rtspServer_inc})    #-I
         target_include_directories(opencv_demo PRIVATE ${enCoder_inc})    #-I

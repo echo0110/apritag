@@ -59,7 +59,7 @@ extern "C" {
 //=====================  RTSP  =====================
 #include "rtspServer/rtspServer.h"
 #include "enCoder/enCoder.h"
-
+#include "camera_capture.h"
 // Global RTSP configuration
 const char* DEFAULT_RTSP_URL = "rtsp://admin:admin@192.168.1.108:554/stream1";
 bool use_rtsp = false;
@@ -136,55 +136,38 @@ inline double standardRad(double t) {
 
 cv::Mat acquire_image()
 {
-    static cv::VideoCapture cap;
-    static bool initialized = false;
-    cv::Mat frame;
-
-    if (!initialized) {
-        if (use_rtsp) {
-            // Open RTSP stream
-            cap.open(rtsp_url);
-            if (!cap.isOpened()) {
-                cerr << "Failed to open RTSP stream: " << rtsp_url << endl;
-                return cv::Mat();
-            }
-        } else {
-            // Use original camera initialization
-            int ret = ircamera_init(CAMERA_WIDTH, CAMERA_HEIGHT, 270);
-            if (ret != 0) {
-                cerr << "Failed to initialize camera" << endl;
-                return cv::Mat();
-            }
-        }
-        initialized = true;
+    char *pbuf = NULL;
+    int ret = 0;
+    int skip = 0;
+    ret = ircamera_init(CAMERA_WIDTH, CAMERA_HEIGHT, 270);
+    pbuf = (char *)malloc(IMAGE_SIZE);
+    if (!pbuf) {
+        fprintf(stderr, "error: memory allocation failed: %s, %d\n", __func__, __LINE__);
+        return cv::Mat();
     }
 
-    if (use_rtsp) {
-        // Get frame from RTSP stream
-        if (!cap.read(frame)) {
-            cerr << "Failed to read frame from RTSP stream" << endl;
-            return cv::Mat();
-        }
-        return frame;
-    } else {
-        // Original camera code
-        char *pbuf = (char *)malloc(IMAGE_SIZE);
-        if (!pbuf) {
-            fprintf(stderr, "error: memory allocation failed: %s, %d\n", __func__, __LINE__);
-            return cv::Mat();
-        }
+    //跳过前10帧
+	skip = 10;
+	while(skip--) {
+		ret = rgbcamera_getframe(pbuf);
+		if (ret) {
+			printf("error: %s, %d\n", __func__, __LINE__);
+		}
+	}
 
-        int ret = rgbcamera_getframe(pbuf);
-        if (ret) {
-            free(pbuf);
-            return cv::Mat();
-        }
+    // 转换为Mat格式（BGR）
+    cv::Mat color_image(CAMERA_HEIGHT, CAMERA_WIDTH, CV_8UC3, pbuf);
+    memcpy(color_image.data, pbuf, IMAGE_SIZE);
 
-        cv::Mat color_image(CAMERA_HEIGHT, CAMERA_WIDTH, CV_8UC3, pbuf);
-        cv::Mat result = color_image.clone();
-        free(pbuf);
-        return result;
-    }
+    cv::Mat gray_image;
+    cv::cvtColor(color_image, gray_image, COLOR_BGR2GRAY);
+#if 0   
+    // 直接转换为灰度图
+    cv::Mat gray_image;
+    cv::cvtColor(color_image, gray_image, COLOR_BGR2GRAY);
+#endif  
+    free(pbuf);
+    return gray_image;  
 }
 
 
@@ -215,8 +198,7 @@ int main(int argc, char *argv[])
 
     cout << "Enabling video capture" << endl;
 
-    TickMeter meter;
-    meter.start();
+   
 
     // Configure RTSP if requested
     use_rtsp = getopt_get_bool(getopt, "rtsp");
@@ -266,19 +248,9 @@ int main(int argc, char *argv[])
     td->debug = getopt_get_bool(getopt, "debug");
     td->refine_edges = getopt_get_bool(getopt, "refine-edges");
 
-    meter.stop();
-    cout << "Detector " << famname << " initialized in "
-        << std::fixed << std::setprecision(3) << meter.getTimeSec() << " seconds" << endl;
-#if CV_MAJOR_VERSION > 3
-    // cout << "  " << cap.get(CAP_PROP_FRAME_WIDTH ) << "x" <<
-    //                 cap.get(CAP_PROP_FRAME_HEIGHT ) << " @" <<
-    //                 cap.get(CAP_PROP_FPS) << "FPS" << endl;
-#else
-    cout << "  " << cap.get(CV_CAP_PROP_FRAME_WIDTH ) << "x" <<
-                    cap.get(CV_CAP_PROP_FRAME_HEIGHT ) << " @" <<
-                    cap.get(CV_CAP_PROP_FPS) << "FPS" << endl;
-#endif
-    meter.reset();
+   
+
+    
 
     /***********输入标定的相机参数*************/
     apriltag_detection_info_t info;     // parameters of the camera calibrations 在这里把标定得到的四元参数输入到程序里
@@ -288,9 +260,15 @@ int main(int argc, char *argv[])
     info.cx = 301.857;
     info.cy = 237.548;
 
-    cv::Mat gray_image,gray;
-    gray = acquire_image();  
+    // cv::Mat gray_image,gray;
+    // gray = acquire_image();  
    
+    
+    CameraCapture camera;
+    if (!camera.isInitialized()) {
+        fprintf(stderr, "相机初始化失败\n");
+        return -1;
+    }
     printf("func is %s,%d,%s\n",__func__,__LINE__,"##############");
     while (1) {
         errno = 0;
@@ -299,6 +277,12 @@ int main(int argc, char *argv[])
         // cvtColor(rgb_image, gray, COLOR_BGR2GRAY);
         // printf("func is %s,%d,%s\n",__func__,__LINE__,"##############");
         // Make an image_u8_t header for the Mat data
+
+        cv::Mat gray = camera.getFrame();
+        if (gray.empty()) {
+            fprintf(stderr, "获取图像帧失败\n");
+            continue;
+        }
         image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
 
         zarray_t *detections = apriltag_detector_detect(td, &im);
