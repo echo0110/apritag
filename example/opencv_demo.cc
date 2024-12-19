@@ -70,6 +70,7 @@ std::string rtsp_url;
 #define RTSP_STREAM_NAME "apriltag"
 #define MAXCHNNUM 4
 #define PROCESS_ENCODER_NAME   "enCoder"
+#define PROCESS_RTSPSERVER_NAME "rtspServer"
 static bool rtsp_initialized = false;
 
 // Function to initialize RTSP server
@@ -83,7 +84,7 @@ bool init_rtsp_server() {
     }
     
     // Initialize RTSP server
-    if (rtspServerInit(RTSP_PORT) != 0) {
+    if (rtspServerInit(PROCESS_RTSPSERVER_NAME) != 0) {
         std::cerr << "Failed to initialize RTSP server" <<std::endl;
         return false;
     }
