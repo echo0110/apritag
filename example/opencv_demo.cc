@@ -66,8 +66,10 @@ bool use_rtsp = false;
 std::string rtsp_url;
 
 // RTSP streaming configuration
-#define RTSP_PORT "8554"
+#define RTSP_PORT "554"
 #define RTSP_STREAM_NAME "apriltag"
+#define MAXCHNNUM 4
+#define PROCESS_ENCODER_NAME   "enCoder"
 static bool rtsp_initialized = false;
 
 // Function to initialize RTSP server
@@ -75,7 +77,7 @@ bool init_rtsp_server() {
     if (rtsp_initialized) return true;
     
     // Initialize encoder
-    if (enCoderInit("apriltag") != 0) {
+    if (enCoderInit(PROCESS_ENCODER_NAME) != 0) {
         std::cerr << "Failed to initialize encoder" << std::endl;
         return false;
     }
@@ -91,16 +93,10 @@ bool init_rtsp_server() {
     std::cout << "Stream URL: rtsp://[your-ip]:" << RTSP_PORT << "/" << RTSP_STREAM_NAME << std::endl;
     return true;
 }
-
-// Function to stream frame via RTSP
 void stream_frame(const cv::Mat& frame) {
-    if (!rtsp_initialized) {
-        if (!init_rtsp_server()) {
-            return;
-        }
-    }
+    static bool first_frame = true;
     
-    // Convert frame to required format if necessary
+    // 转换图像格式
     cv::Mat stream_frame;
     if (frame.channels() == 1) {
         cv::cvtColor(frame, stream_frame, cv::COLOR_GRAY2BGR);
@@ -108,9 +104,9 @@ void stream_frame(const cv::Mat& frame) {
         stream_frame = frame;
     }
     
-    // Send frame to RTSP server
-    // Note: You might need to adjust the format and parameters based on your RTSP server implementation
-    //rtspServerPushFrame((char*)stream_frame.data, stream_frame.total() * stream_frame.elemSize());
+    // 推送帧到编码通道
+    size_t frameSize = stream_frame.total() * stream_frame.elemSize();
+    push_frame_to_encMedia_channel(CHANNEL_0, stream_frame.data, frameSize, false);
 }
 
 /*end*/
@@ -262,8 +258,13 @@ int main(int argc, char *argv[])
 
     // cv::Mat gray_image,gray;
     // gray = acquire_image();  
-   
+   // 4. 首先初始化RTSP服务器
+    if (!init_rtsp_server()) {
+        fprintf(stderr, "RTSP服务器初始化失败\n");
+        return -1;
+    }
     
+    // 5. 然后初始化相机
     CameraCapture camera;
     if (!camera.isInitialized()) {
         fprintf(stderr, "相机初始化失败\n");
@@ -272,12 +273,6 @@ int main(int argc, char *argv[])
     printf("func is %s,%d,%s\n",__func__,__LINE__,"##############");
     while (1) {
         errno = 0;
-        // gray = cv::Mat(rgb_image.rows, rgb_image.cols, CV_8UC1);
-        // printf("func is %s,%d,%s\n",__func__,__LINE__,"##############");
-        // cvtColor(rgb_image, gray, COLOR_BGR2GRAY);
-        // printf("func is %s,%d,%s\n",__func__,__LINE__,"##############");
-        // Make an image_u8_t header for the Mat data
-
         cv::Mat gray = camera.getFrame();
         if (gray.empty()) {
             fprintf(stderr, "获取图像帧失败\n");
@@ -350,7 +345,6 @@ int main(int argc, char *argv[])
                     fontface, fontscale, Scalar(0xff, 0x99, 0), 2);
         }
         apriltag_detections_destroy(detections);
-        printf("**********************************2222");
         // Instead of imshow and imwrite, stream the frame via RTSP
         stream_frame(gray);
     }
