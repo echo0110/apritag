@@ -73,27 +73,7 @@ std::string rtsp_url;
 #define PROCESS_RTSPSERVER_NAME "rtspServer"
 static bool rtsp_initialized = false;
 
-// Function to initialize RTSP server
-bool init_rtsp_server() {
-    if (rtsp_initialized) return true;
-    
-    // Initialize encoder
-    if (enCoderInit(PROCESS_ENCODER_NAME) != 0) {
-        std::cerr << "Failed to initialize encoder" << std::endl;
-        return false;
-    }
-    
-    // Initialize RTSP server
-    if (rtspServerInit(PROCESS_RTSPSERVER_NAME) != 0) {
-        std::cerr << "Failed to initialize RTSP server" <<std::endl;
-        return false;
-    }
-    
-    rtsp_initialized = true;
-    std::cout << "RTSP server initialized on port " << RTSP_PORT << std::endl;
-    std::cout << "Stream URL: rtsp://[your-ip]:" << RTSP_PORT << "/" << RTSP_STREAM_NAME << std::endl;
-    return true;
-}
+
 // void stream_frame(const cv::Mat& frame) {
 //     static bool first_frame = true;
     
@@ -284,10 +264,9 @@ int main(int argc, char *argv[])
     // cv::Mat gray_image,gray;
     // gray = acquire_image();  
    // 4. 首先初始化RTSP服务器
-    if (!init_rtsp_server()) {
-        fprintf(stderr, "RTSP服务器初始化失败\n");
-        return -1;
-    }
+    cout << "Enabling video capture" << endl;
+
+    init_rtsp_main_process();
     
     // 5. 然后初始化相机
     CameraCapture camera;
