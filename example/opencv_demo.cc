@@ -94,10 +94,25 @@ bool init_rtsp_server() {
     std::cout << "Stream URL: rtsp://[your-ip]:" << RTSP_PORT << "/" << RTSP_STREAM_NAME << std::endl;
     return true;
 }
+// void stream_frame(const cv::Mat& frame) {
+//     static bool first_frame = true;
+    
+//     // 转换图像格式
+//     cv::Mat stream_frame;
+//     if (frame.channels() == 1) {
+//         cv::cvtColor(frame, stream_frame, cv::COLOR_GRAY2BGR);
+//     } else {
+//         stream_frame = frame;
+//     }
+    
+//     // 推送帧到编码通道
+//     size_t frameSize = stream_frame.total() * stream_frame.elemSize();
+//     push_frame_to_encMedia_channel(CHANNEL_0, stream_frame.data, frameSize, false);
+// }
 void stream_frame(const cv::Mat& frame) {
     static bool first_frame = true;
     
-    // 转换图像格式
+    // 确保图像格式为 BGR
     cv::Mat stream_frame;
     if (frame.channels() == 1) {
         cv::cvtColor(frame, stream_frame, cv::COLOR_GRAY2BGR);
@@ -105,9 +120,18 @@ void stream_frame(const cv::Mat& frame) {
         stream_frame = frame;
     }
     
+    // 确保图像尺寸正确
+    if (stream_frame.size() != cv::Size(CAMERA_WIDTH, CAMERA_HEIGHT)) {
+        cv::resize(stream_frame, stream_frame, cv::Size(CAMERA_WIDTH, CAMERA_HEIGHT));
+    }
+    
+    // 转换为 NV12 格式 (MPP 编码器需要)
+    cv::Mat yuv;
+    cv::cvtColor(stream_frame, yuv, cv::COLOR_BGR2YUV_I420);
+    
     // 推送帧到编码通道
-    size_t frameSize = stream_frame.total() * stream_frame.elemSize();
-    push_frame_to_encMedia_channel(CHANNEL_0, stream_frame.data, frameSize, false);
+    size_t frameSize = yuv.total() * yuv.elemSize();
+    push_frame_to_encMedia_channel(CHANNEL_0, yuv.data, frameSize, false);
 }
 
 /*end*/
@@ -279,6 +303,8 @@ int main(int argc, char *argv[])
             fprintf(stderr, "获取图像帧失败\n");
             continue;
         }
+        stream_frame(gray);
+#if 0
         image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
 
         zarray_t *detections = apriltag_detector_detect(td, &im);
@@ -348,6 +374,7 @@ int main(int argc, char *argv[])
         apriltag_detections_destroy(detections);
         // Instead of imshow and imwrite, stream the frame via RTSP
         stream_frame(gray);
+#endif
     }
 
     apriltag_detector_destroy(td);

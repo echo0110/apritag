@@ -16,6 +16,8 @@
 
 #include "rtspServer.h"
 
+
+
 void VideoStreamConnect(void *pCustomData)
 {
     int *queueChnId = (int *)pCustomData;
@@ -101,7 +103,8 @@ int rtspServerInit(const char *moduleName)
     srv.stream[0].audioHooks.pConnectHook = AudioStreamConnect;
     srv.stream[0].audioHooks.pDataInHook = AudioStreamDataIn;
     srv.stream[0].audioHooks.pCustomData = &queueChnId;
-    strcpy(srv.stream[0].strName, "aabb");
+    //strcpy(srv.stream[0].strName, "aabb");
+    strcpy(srv.stream[0].strName, "live");  // 使用更标准的流名称
 
     create_video_frame_queue_pool(CHANNEL_Max);
     create_audio_frame_queue_pool(CHANNEL_Max);

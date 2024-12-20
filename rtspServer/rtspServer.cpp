@@ -17,10 +17,11 @@
 #include "rtspServer.h"
 
 void VideoStreamConnect(void *pCustomData)
-{
+{    printf("New RTSP connection request received\n");
     int *queueChnId = (int *)pCustomData;
 
     flush_video_channel(*queueChnId);
+    
 }
 int32_t VideoStreamDataIn(void *pCustomData, RTSPVideoDesc_t *pDesc, uint8_t *pData)
 {
@@ -38,7 +39,7 @@ int32_t VideoStreamDataIn(void *pCustomData, RTSPVideoDesc_t *pDesc, uint8_t *pD
     pDesc->frameIndex = node.dwFrameIndex;
     pDesc->dataLen    = node.dwDataLen;
     pDesc->timeStamp  = node.ddwTimeStamp;
-    
+    printf("Sending video frame, size: %d\n", pDesc->dataLen);
     
     return 0;
 }
