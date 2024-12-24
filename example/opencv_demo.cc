@@ -290,20 +290,20 @@ int main(int argc, char *argv[])
     init_rtsp_main_process();
     
     // 5. 然后初始化相机
-    CameraCapture camera;
-    if (!camera.isInitialized()) {
-        fprintf(stderr, "相机初始化失败\n");
-        return -1;
-    }
+    // CameraCapture camera;
+    // if (!camera.isInitialized()) {
+    //     fprintf(stderr, "相机初始化失败\n");
+    //     return -1;
+    // }
     printf("func is %s,%d,%s\n",__func__,__LINE__,"##############");
     while (1) {
-        errno = 0;
-        cv::Mat gray = camera.getFrame();
-        if (gray.empty()) {
-            fprintf(stderr, "获取图像帧失败\n");
-            continue;
-        }
-        stream_frame(gray);
+        // errno = 0;
+        // cv::Mat gray = camera.getFrame();
+        // if (gray.empty()) {
+        //     fprintf(stderr, "获取图像帧失败\n");
+        //     continue;
+        // }
+        // stream_frame(gray);
 #if 0
         image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
 
