@@ -8,6 +8,8 @@
 #define CAMERA_HEIGHT 1080
 #define IMGRATIO     3
 #define IMAGE_SIZE   (CAMERA_WIDTH*CAMERA_HEIGHT*IMGRATIO)
+
+
 class CameraCapture {
 private:
     char *pbuf;

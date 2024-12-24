@@ -8,6 +8,7 @@
 #include "frame_queue.h"
 #include "rtsp.h"
 
+extern int init_rtsp_main_process();
 extern int rtspServerInit(const char *moduleName);
 
 #endif

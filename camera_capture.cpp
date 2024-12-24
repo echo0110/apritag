@@ -3,7 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-
+#include "log_manager.h"
+#define LOGCONFIG_PATH    "./logCfg"
 #define TASK_INFO_NAME_LEN 256
 #define TASK_RESPAWN_RETRY_MAX_TIMES 4 // 子进程崩溃后重启重试次数
 struct st_Task_Info
@@ -127,7 +128,8 @@ static int32_t CreateProcess(const char *pcPara, struct st_SysTask *st_TaskInfo)
 			st_TaskInfo->st_task[st_TaskInfo->dwTaskNum].dwExitBootTime = time(NULL);
 		}
 		
-		osTask_msDelay(100);
+		//osTask_msDelay(100);
+        usleep(100000);
 		return pid; 
 	}
 
@@ -173,41 +175,6 @@ bool init_rtsp_server(const char* progName) {
     std::cout << "RTSP server initialized on port 554" << std::endl;
     std::cout << "Stream URL: rtsp://[your-ip]:554/aabb" << std::endl;
     return true;
-}
-
-int init_rtsp_main_process() {
-    // 1. 先执行Main进程的初始化
-    struct st_SysTask st_TaskInfo;
-    memset(&st_TaskInfo, 0, sizeof(st_TaskInfo));
-    
-    // 2. 创建RTSP服务器进程
-    pid_t rtsp_pid = fork();
-    if (rtsp_pid == 0) {
-        // 子进程 - RTSP服务器
-        printf("Starting RTSP server process...\n");
-        return rtspServerInit(PROCESS_RTSPSERVER_NAME);
-    } else if (rtsp_pid < 0) {
-        printf("Failed to create RTSP server process\n");
-        return -1;
-    }
-    
-    // 等待RTSP服务器启动
-    sleep(1);
-    
-    // 3. 创建编码器进程
-    pid_t encoder_pid = fork();
-    if (encoder_pid == 0) {
-        // 子进程 - 编码器
-        printf("Starting encoder process...\n");
-        return enCoderInit(PROCESS_ENCODER_NAME);
-    } else if (encoder_pid < 0) {
-        printf("Failed to create encoder process\n");
-        return -1;
-    }
-    
-    // 4. 主进程继续运行
-    printf("All processes created successfully\n");
-    return 0;
 }
 
 

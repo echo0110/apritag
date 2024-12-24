@@ -254,7 +254,26 @@ if (BUILD_EXAMPLES)
             enCoder/enCoder.cpp
 	    ${CAMERA_SOURCES}
         )
-        target_link_libraries(opencv_demo apriltag ${OpenCV_LIBRARIES} camera easymedia rga rkaiq pthread)
+        #target_link_libraries(opencv_demo apriltag ${OpenCV_LIBRARIES} camera easymedia rga rkaiq pthread)
+        target_link_libraries(opencv_demo 
+        rtsp               
+        system_opt
+        log_manager
+        ini
+        endeCode_api
+        frame_queue
+        apriltag 
+        ${OpenCV_LIBRARIES} 
+        camera 
+        easymedia 
+        rga 
+        rkaiq 
+        pthread
+        rockchip_mpp
+        avcodec
+        swresample
+        avutil
+        )
         target_include_directories(opencv_demo PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR} 
             ${api_inc}

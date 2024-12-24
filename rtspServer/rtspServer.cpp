@@ -15,6 +15,9 @@
 #include "system.h"
 
 #include "rtspServer.h"
+#include "enCoder/enCoder.h"
+#define PROCESS_ENCODER_NAME   "enCoder"
+#define PROCESS_RTSPSERVER_NAME "rtspServer"
 
 void VideoStreamConnect(void *pCustomData)
 {    printf("New RTSP connection request received\n");
@@ -115,3 +118,38 @@ int rtspServerInit(const char *moduleName)
     return -1;
 }
 
+
+int init_rtsp_main_process() {
+    // 1. 先执行Main进程的初始化
+    // struct st_SysTask st_TaskInfo;
+    // memset(&st_TaskInfo, 0, sizeof(st_TaskInfo));
+    
+    // 2. 创建RTSP服务器进程
+    pid_t rtsp_pid = fork();
+    if (rtsp_pid == 0) {
+        // 子进程 - RTSP服务器
+        printf("Starting RTSP server process...\n");
+        return rtspServerInit(PROCESS_RTSPSERVER_NAME);
+    } else if (rtsp_pid < 0) {
+        printf("Failed to create RTSP server process\n");
+        return -1;
+    }
+    
+    // 等待RTSP服务器启动
+    sleep(5);
+    
+    // 3. 创建编码器进程
+    pid_t encoder_pid = fork();
+    if (encoder_pid == 0) {
+        // 子进程 - 编码器
+        printf("Starting encoder process...\n");
+        return enCoderInit(PROCESS_ENCODER_NAME);
+    } else if (encoder_pid < 0) {
+        printf("Failed to create encoder process\n");
+        return -1;
+    }
+    
+    // 4. 主进程继续运行
+    printf("All processes created successfully\n");
+    return 0;
+}
