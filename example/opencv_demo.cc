@@ -109,26 +109,21 @@ bool init_rtsp_server() {
 //     push_frame_to_encMedia_channel(CHANNEL_0, stream_frame.data, frameSize, false);
 // }
 void stream_frame(const cv::Mat& frame) {
-    static bool first_frame = true;
-    
-    // 确保图像格式为 BGR
-    cv::Mat stream_frame;
-    if (frame.channels() == 1) {
-        cv::cvtColor(frame, stream_frame, cv::COLOR_GRAY2BGR);
-    } else {
-        stream_frame = frame;
-    }
+    if (frame.empty()) return;
     
     // 确保图像尺寸正确
-    if (stream_frame.size() != cv::Size(CAMERA_WIDTH, CAMERA_HEIGHT)) {
-        cv::resize(stream_frame, stream_frame, cv::Size(CAMERA_WIDTH, CAMERA_HEIGHT));
+    cv::Mat resized_frame;
+    if (frame.size() != cv::Size(CAMERA_WIDTH, CAMERA_HEIGHT)) {
+        cv::resize(frame, resized_frame, cv::Size(CAMERA_WIDTH, CAMERA_HEIGHT));
+    } else {
+        resized_frame = frame;
     }
     
-    // 转换为 NV12 格式 (MPP 编码器需要)
+    // 转换为NV12格式
     cv::Mat yuv;
-    cv::cvtColor(stream_frame, yuv, cv::COLOR_BGR2YUV_I420);
+    cv::cvtColor(resized_frame, yuv, cv::COLOR_BGR2YUV_I420);
     
-    // 推送帧到编码通道
+    // 推送到编码通道
     size_t frameSize = yuv.total() * yuv.elemSize();
     push_frame_to_encMedia_channel(CHANNEL_0, yuv.data, frameSize, false);
 }
@@ -280,30 +275,33 @@ int main(int argc, char *argv[])
     info.cx = 301.857;
     info.cy = 237.548;
 
-    // cv::Mat gray_image,gray;
-    // gray = acquire_image();  
-   // 4. 首先初始化RTSP服务器
-    // if (!init_rtsp_server()) {
-    //     fprintf(stderr, "RTSP服务器初始化失败\n");
-    //     return -1;
-    // }
+
+    //1. 然后初始化相机
+    CameraCapture camera;
+    if (!camera.isInitialized()) {
+        fprintf(stderr, "Camera initialization failed\n");
+        return -1;
+    }
     init_rtsp_main_process();
     
-    // 5. 然后初始化相机
-    // CameraCapture camera;
-    // if (!camera.isInitialized()) {
-    //     fprintf(stderr, "相机初始化失败\n");
-    //     return -1;
-    // }
+    sleep(2); // 等待RTSP服务启动
     printf("func is %s,%d,%s\n",__func__,__LINE__,"##############");
     while (1) {
-        // errno = 0;
-        // cv::Mat gray = camera.getFrame();
-        // if (gray.empty()) {
-        //     fprintf(stderr, "获取图像帧失败\n");
-        //     continue;
-        // }
-        // stream_frame(gray);
+        // 获取图像
+        cv::Mat frame = camera.getFrame();
+        if (frame.empty()) {
+            fprintf(stderr, "获取图像失败\n");
+            continue;
+        }
+        
+        // 推流到RTSP
+        stream_frame(frame);
+        
+        // TODO: 后续添加AprilTag处理
+        // zarray_t *detections = apriltag_detector_detect(td, &im);
+        // ... AprilTag处理代码 ...
+        
+        usleep(30000); // 控制帧率
 #if 0
         image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
 

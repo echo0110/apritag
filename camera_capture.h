@@ -16,30 +16,25 @@ private:
     bool initialized;
 
 public:
-    CameraCapture() : pbuf(nullptr), initialized(false) {
-        // 在构造函数中进行相机初始化
-        int ret = ircamera_init(CAMERA_WIDTH, CAMERA_HEIGHT, 270);
-        if (ret != 0) {
-            fprintf(stderr, "相机初始化失败\n");
-            return;
-        }
-        
-        pbuf = (char *)malloc(IMAGE_SIZE);
-        if (!pbuf) {
-            fprintf(stderr, "内存分配失败\n");
-            return;
-        }
-        
-        // 跳过前10帧
-        int skip = 10;
-        while(skip--) {
-            ret = rgbcamera_getframe(pbuf);
-            if (ret) {
-                printf("跳帧错误: %s, %d\n", __func__, __LINE__);
+     CameraCapture() : pbuf(nullptr), initialized(false) {
+        int retry_count = 3;
+        while (retry_count-- && !initialized) {
+            int ret = rgbcamera_init(CAMERA_WIDTH, CAMERA_HEIGHT, 270);
+            if (ret == 0) {
+                pbuf = (char *)malloc(IMAGE_SIZE);
+                if (pbuf) {
+                    // 跳过前几帧
+                    int skip = 10;
+                    while(skip--) {
+                        ret = rgbcamera_getframe(pbuf);
+                        usleep(10000);
+                    }
+                    initialized = true;
+                    break;
+                }
             }
+            usleep(500000); // 失败后等待0.5秒再重试
         }
-        
-        initialized = true;
     }
     
     ~CameraCapture() {
