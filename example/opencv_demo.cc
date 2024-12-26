@@ -276,13 +276,16 @@ int main(int argc, char *argv[])
     info.cy = 237.548;
 
 
-    //1. 然后初始化相机
+    // 1. 初始化RTSP和编码器进程
+    init_rtsp_main_process();
+    sleep(2); // 等待RTSP服务启动
+
+    // 2. 创建相机对象（现在只是一个空壳）
     CameraCapture camera;
     if (!camera.isInitialized()) {
-        fprintf(stderr, "Camera initialization failed\n");
+        fprintf(stderr, "相机初始化失败\n");
         return -1;
     }
-    init_rtsp_main_process();
     
     sleep(2); // 等待RTSP服务启动
     printf("func is %s,%d,%s\n",__func__,__LINE__,"##############");

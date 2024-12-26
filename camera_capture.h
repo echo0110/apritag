@@ -12,64 +12,30 @@
 
 class CameraCapture {
 private:
-    char *pbuf;
     bool initialized;
 
 public:
-     CameraCapture() : pbuf(nullptr), initialized(false) {
-        int retry_count = 3;
-        while (retry_count-- && !initialized) {
-            int ret = rgbcamera_init(CAMERA_WIDTH, CAMERA_HEIGHT, 270);
-            if (ret == 0) {
-                pbuf = (char *)malloc(IMAGE_SIZE);
-                if (pbuf) {
-                    // 跳过前几帧
-                    int skip = 10;
-                    while(skip--) {
-                        ret = rgbcamera_getframe(pbuf);
-                        usleep(10000);
-                    }
-                    initialized = true;
-                    break;
-                }
-            }
-            usleep(500000); // 失败后等待0.5秒再重试
-        }
+    CameraCapture() : initialized(false) {
+        // 不再进行摄像头初始化，因为已经在编码器进程中完成
+        initialized = true;
     }
     
     ~CameraCapture() {
-        if (pbuf) {
-            free(pbuf);
-            pbuf = nullptr;
-        }
-        // 这里可以添加相机关闭的代码
+        // 不再需要释放摄像头，由编码器进程管理
     }
     
-    inline  cv::Mat getFrame() {
-        if (!initialized || !pbuf) {
+    inline cv::Mat getFrame() {
+        if (!initialized) {
             return cv::Mat();
         }
         
-        int ret = rgbcamera_getframe(pbuf);
-        if (ret) {
-            printf("获取帧错误: %s, %d\n", __func__, __LINE__);
-            return cv::Mat();
-        }
-        
-        // 转换为Mat格式（BGR）
-        cv::Mat color_image(CAMERA_HEIGHT, CAMERA_WIDTH, CV_8UC3);
-        memcpy(color_image.data, pbuf, IMAGE_SIZE);
-        
-        // 转换为灰度图
-        cv::Mat gray_image;
-        cv::cvtColor(color_image, gray_image, cv::COLOR_BGR2GRAY);
-        
-        return gray_image;
+        // 从共享内存或其他IPC机制获取图像数据
+        // 这里直接返回空Mat，因为实际图像数据已经在编码器进程中处理并推流
+        return cv::Mat();
     }
     
     bool isInitialized() const {
         return initialized;
     }
 };
-
 #endif  // CAMERA_CAPTURE_H
