@@ -273,6 +273,7 @@ if (BUILD_EXAMPLES)
         avcodec
         swresample
         avutil
+	rt
         )
         target_include_directories(opencv_demo PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR} 

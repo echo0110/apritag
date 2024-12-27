@@ -18,9 +18,16 @@
 #include "enCoder.h"
 #include "audio.h"
 
+#include <sys/shm.h>
+#include <sys/ipc.h>
+#include <errno.h>
+#include <string.h>
+
+#include "camera_capture.h"
+
 #define CAMERA_WIDTH	1920
 #define CAMERA_HEIGHT	1080
-#define	IMGRATIO		1.5
+//#define	IMGRATIO		1.5
 #define	IMAGE_SIZE		(CAMERA_WIDTH*CAMERA_HEIGHT*IMGRATIO)
 
 #define PCM_FORMAT     SND_PCM_FORMAT_FLOAT_LE   //由于ffmpeg的AAC编码器仅支持FLTP格式输入，因此声卡用FLOAT采用的运算量最少
@@ -59,6 +66,9 @@ int32_t StreamOutpuHandle(void *obj, VideoNodeDesc *pNodeDesc, uint8_t *pNALUDat
 
 void *videoCapture_thread(void *para)
 {
+     // 添加共享内存变量声明
+    void *shm_addr = nullptr;
+    int shm_fd = -1;
     // 播放器对象
     Recorder_para_t *pPara = (Recorder_para_t *)para;
 
@@ -66,7 +76,7 @@ void *videoCapture_thread(void *para)
     bool bIsInited = true;
     WorkPara wp;
     AdvanceWorkPara awp;
-
+    
     // camera
     int ret = 0;
     int skip = 10;
@@ -129,6 +139,21 @@ void *videoCapture_thread(void *para)
                     bIsInited = false;
                 }
             }
+
+
+            // 获取POSIX共享内存
+            int shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
+            void *shm_addr = nullptr;
+            if (shm_fd != -1) {
+                if (ftruncate(shm_fd, CAMERA_WIDTH * CAMERA_HEIGHT * IMGRATIO) != -1) {
+                    shm_addr = mmap(nullptr, CAMERA_WIDTH * CAMERA_HEIGHT * IMGRATIO, 
+                                PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+                    if (shm_addr == MAP_FAILED) {
+                        shm_addr = nullptr;
+                    }
+                }
+                close(shm_fd);
+            }
             
             /* ============================ 送帧进入编码通道 ============================= */
             if(bIsInited){
@@ -137,6 +162,11 @@ void *videoCapture_thread(void *para)
                     ret = mipicamera_getframe(CAMERA_INDEX, pbuf);
                     if(ret){
                         usleep(10*1000); continue;
+                    }
+
+                        // ... 在循环中写入共享内存的代码 ...
+                    if (shm_addr && shm_addr != MAP_FAILED) {
+                        memcpy(shm_addr, pbuf, IMAGE_SIZE);
                     }
                     commit_buffer_to_encMedia_channel(pPara->videoChn_Id, false);
                     usleep(10*1000);
@@ -154,6 +184,11 @@ void *videoCapture_thread(void *para)
     printf("==============================[exit video Capture Thread]==============================\n");
     
     pPara->vCaptureIsRunning = false;
+
+    // 清理共享内存 - 放在循环结束后，退出线程前
+    if (shm_addr && shm_addr != MAP_FAILED) {
+        munmap(shm_addr, CAMERA_WIDTH * CAMERA_HEIGHT * IMGRATIO);
+    }
 	pthread_exit(NULL);
 }
 
